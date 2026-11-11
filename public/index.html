@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PeoplePulse HR Portal</title>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--tx:#1b1f2a;--mu:#6b7280;--bd:#e5e7eb;--ac:#4f46e5;--ac2:#eef2ff;--ok:#059669;--wa:#d97706;--bad:#dc2626;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1117;--card:#181b24;--tx:#e8eaf0;--mu:#9aa0ae;--bd:#2a2e3a;--ac:#818cf8;--ac2:#232850;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card);border-bottom:1px solid var(--bd)}
+.logo{font-weight:700;font-size:18px}.logo span{color:var(--ac)}
+nav{display:flex;gap:6px;padding:10px 20px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--bd)}
+nav button{border:0;background:none;color:var(--mu);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit;white-space:nowrap}
+nav button.on{background:var(--ac2);color:var(--ac);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:20px}h2{margin:0 0 4px;font-size:20px}.sub{color:var(--mu);margin:0 0 16px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.row{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-top:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.k{color:var(--mu);font-size:12px}.v{font-size:26px;font-weight:700}h3{margin:12px 0 8px;font-size:15px}.card>h3:first-child{margin-top:0}
+.li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)}.li:last-child{border:0}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap}
+.hi{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}.md{background:color-mix(in srgb,var(--wa) 18%,transparent);color:var(--wa)}.lo{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.btn{border:1px solid var(--ac);background:none;color:var(--ac);border-radius:8px;padding:6px 11px;cursor:pointer;font:inherit;font-size:12px}
+.btn.on{background:var(--ok);border-color:var(--ok);color:#fff}.btn.p{background:var(--ac);color:#fff}
+input,select{width:100%;padding:8px;margin:0 0 8px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit}
+input[type=checkbox]{width:auto;margin:0 6px 0 0}.bar{height:8px;background:var(--bd);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.kan{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.col{background:var(--bg);border-radius:10px;padding:10px}.col h4{margin:0 0 8px;font-size:13px;color:var(--mu)}
+.cd{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px;margin-bottom:8px;cursor:pointer}
+.emo button{font-size:24px;border:1px solid var(--bd);background:var(--card);border-radius:10px;padding:6px 10px;cursor:pointer;margin-right:6px}
+#login{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px}#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:10px 16px;border-radius:10px;background:var(--ac);color:#fff;z-index:9;display:none}
+.up{color:var(--bad)}[hidden]{display:none!important}
+</style></head><body>
+<div id="login"><div class="card" style="width:100%;max-width:380px"><div class="logo">People<span>Pulse</span></div><p class="sub">Sign in to the HR Portal</p>
+<input id="em" type="email" placeholder="Email" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password">
+<div id="err" class="up" style="min-height:20px"></div><button class="btn p" id="sg" style="width:100%;padding:10px">Sign in</button>
+<p class="k" style="margin-top:14px">Demo: hr@company.com / hr123 · manager@company.com / mgr123 · employee@company.com / emp123</p></div></div>
+<div id="app" hidden><header><div class="logo">People<span>Pulse</span> · HR Portal</div><span><span class="k" id="who"></span> <button class="btn" id="out">Log out</button></span></header><nav id="nav"></nav><main id="main"></main></div>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s);let T=null,U=null,cur="";const CH=[["bot","Hi! Ask me about leave, payslips, WFH or POSH."]];
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ld=()=>{try{return sessionStorage.getItem("t")}catch(e){return null}},sv=v=>{try{v?sessionStorage.setItem("t",v):sessionStorage.removeItem("t")}catch(e){}};
+function toast(m){const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display="none",2500)}
+async function api(p,m="GET",b){const r=await fetch("/api"+p,{method:m,headers:Object.assign({"Content-Type":"application/json"},T?{Authorization:"Bearer "+T}:{}),body:b?JSON.stringify(b):undefined});const d=await r.json().catch(()=>({}));
+ if(r.status===401&&T&&p!=="/auth/login"){logout();throw new Error(d.error||"Session ended")}if(!r.ok)throw new Error(d.error||"Something went wrong");return d}
+const TABS=[["ov","Overview",["HR"]],["risk","Attrition risk",["HR"]],["hire","Hiring",["HR"]],["leave","Leave",["HR","Manager","Employee"]],["hyb","Hybrid work",["HR","Manager","Employee"]],["perf","Performance",["HR","Manager","Employee"]],["onb","Onboarding",["HR","Manager","Employee"]],["en","Engagement",["HR","Manager","Employee"]],["comp","Compliance",["HR","Manager","Employee"]],["help","Helpdesk",["HR","Manager","Employee"]]];
+const kpi=(k,v)=>`<div class="card"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`;
+const rk=s=>s>=70?["hi","High"]:s>=50?["md","Medium"]:["lo","Low"];
+function nav(){$("#nav").innerHTML=TABS.filter(t=>t[2].includes(U.role)).map(t=>`<button data-t="${t[0]}" class="${t[0]===cur?"on":""}">${t[1]}</button>`).join("")}
+async function go(t){cur=t;nav();try{$("#main").innerHTML=await V[t]()}catch(e){$("#main").innerHTML=`<p class="up">${esc(e.message)}</p>`}}
+function show(){$("#login").hidden=!!U;$("#app").hidden=!U}
+function logout(){T=null;U=null;sv(null);show()}
+async function start(user){U=user;$("#who").textContent=user.name+" · "+user.role;show();go(user.role==="HR"?"ov":"leave")}
+$("#sg").onclick=async()=>{try{const d=await api("/auth/login","POST",{email:$("#em").value.trim(),password:$("#pw").value});T=d.token;sv(T);$("#pw").value="";$("#err").textContent="";start(d.user)}catch(e){$("#err").textContent=e.message}};
+$("#pw").onkeydown=e=>{if(e.key==="Enter")$("#sg").click()};$("#out").onclick=logout;
+$("#nav").onclick=e=>{if(e.target.dataset.t)go(e.target.dataset.t)};
+const mon=()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const V={
+async ov(){const[o,a]=await Promise.all([api("/analytics/overview"),api("/audit")]);return `<h2>Workforce overview</h2><p class="sub">Live numbers from the database.</p><div class="grid">${kpi("Headcount",o.headcount)+kpi("Attrition (12 months)",o.attrition_pct_12m+"%")+kpi("Avg days to fill",o.avg_days_to_fill==null?"n/a":o.avg_days_to_fill)+kpi("Engagement",o.engagement_score==null?"n/a":o.engagement_score+"/100")+kpi("High-risk employees",o.high_risk_employees)}</div><div class="card" style="margin-top:14px"><h3>Audit log (latest)</h3>${a.slice(0,8).map(x=>`<div class="li k"><span>${esc(x.name||"unknown")} · ${esc(x.action)} ${esc(x.detail||"")}</span><span>${esc(x.created_at)}</span></div>`).join("")}</div>`},
+async risk(){const r=await api("/analytics/attrition-risk");return `<h2>Attrition risk</h2><p class="sub">Who may leave, why, and what a fix would be worth.</p><div class="row"><div class="card"><h3>At-risk employees</h3>${r.map(x=>{const g=rk(x.score);return `<div class="li"><div>${esc(x.name)} <span class="k">${esc(x.job_title)}</span><div class="k">${esc(x.reasons.join(" · ")||"No risk signals")}</div></div><span class="tag ${g[0]}">${g[1]} ${x.score}%</span></div>`}).join("")}</div>
+<div class="card" id="sim"><h3>What-if simulator</h3><select id="su">${r.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select><label class="k">Pay raise: <b id="sr">0</b>%<input type="range" id="sraise" min="0" max="20" value="0"></label>${[["promotion","Promotion"],["manager_change","Manager change / coaching"],["flexible","Flexible work"],["learning","Learning budget"]].map(x=>`<label style="display:block"><input type="checkbox" id="sc_${x[0]}">${x[1]}</label>`).join("")}<div class="v" id="so" style="margin-top:10px"></div><div class="k" id="sn"></div></div></div>`},
+async hire(){const c=await api("/candidates"),S=["Applied","Screened","Interview","Offer","Hired"];return `<h2>Hiring pipeline</h2><p class="sub">Click a candidate to move them to the next stage.</p><div class="kan">${S.map(s=>`<div class="col"><h4>${s} (${c.filter(x=>x.stage===s).length})</h4>${c.filter(x=>x.stage===s).map(x=>`<div class="cd" data-a="adv" data-i="${x.id}" data-n="${S[S.indexOf(s)+1]||""}">${esc(x.name)}<div class="k">${esc(x.role)}</div></div>`).join("")}</div>`).join("")}</div>`},
+async leave(){const[b,m,p]=await Promise.all([api("/leave/balance"),api("/leave/mine"),U.role==="Employee"?[]:api("/leave/pending")]);return `<h2>Leave</h2><p class="sub">Apply, track and approve leave. Balances update on approval.</p><div class="grid">${b.map(x=>kpi(x.type+" leave",x.days+" days")).join("")}</div><div class="row"><div class="card"><h3>Apply for leave</h3><select id="lt">${b.map(x=>`<option>${esc(x.type)}</option>`).join("")}</select><input id="ld" type="number" min="1" max="30" value="1"><input id="lr" placeholder="Reason (optional)"><button class="btn p" data-a="apply">Submit request</button><h3>My requests</h3>${m.map(x=>`<div class="li">${esc(x.type)} · ${x.days} day(s)<span class="tag ${x.status==="Approved"?"lo":x.status==="Rejected"?"hi":"md"}">${x.status}</span></div>`).join("")||'<p class="k">None yet</p>'}</div>${U.role==="Employee"?"":`<div class="card"><h3>Team approvals</h3>${p.map(x=>`<div class="li"><div>${esc(x.name)}<div class="k">${esc(x.type)} · ${x.days} day(s)</div></div><span><button class="btn" data-a="dec" data-i="${x.id}" data-v="Approved">Approve</button> <button class="btn" data-a="dec" data-i="${x.id}" data-v="Rejected">Reject</button></span></div>`).join("")||'<p class="k">Nothing pending</p>'}</div>`}</div>`},
+async hyb(){const w=await api("/workplan"),mp=Object.fromEntries(w.map(x=>[x.date,x.location])),ds=[0,1,2,3,4].map(i=>{const d=mon();d.setDate(d.getDate()+i);return iso(d)}),nm=["Mon","Tue","Wed","Thu","Fri"],tm=U.role==="Employee"?null:await api("/team/today");
+ return `<h2>Hybrid work</h2><p class="sub">Plan your week. Policy limit: 3 WFH days (enforced by the server).</p><div class="row"><div class="card"><h3>My week</h3>${ds.map((d,i)=>`<button class="btn ${mp[d]==="WFH"?"on":""}" style="margin:0 6px 6px 0" data-a="wfh" data-d="${d}" data-l="${mp[d]==="WFH"?"Office":"WFH"}">${nm[i]}: ${mp[d]||"Not set"}</button>`).join("")}</div>${tm?`<div class="card"><h3>Team today</h3>${tm.map(x=>`<div class="li">${esc(x.name)}<span class="tag ${x.location==="Office"?"lo":x.location==="WFH"?"md":"hi"}">${esc(x.location)}</span></div>`).join("")}</div>`:""}</div>`},
+async perf(){const[g,f]=await Promise.all([api("/goals"),api("/feedback")]);return `<h2>Performance and goals</h2><p class="sub">Update progress any time. Changes save instantly.</p><div class="row"><div class="card"><h3>My goals</h3>${g.map(x=>`<div class="li" style="display:block"><div style="display:flex;justify-content:space-between"><span>${esc(x.title)}</span><b id="g${x.id}">${x.progress}%</b></div><input type="range" data-g="${x.id}" value="${x.progress}"></div>`).join("")||'<p class="k">No goals yet</p>'}<input id="gt" placeholder="New goal"><button class="btn" data-a="addgoal">Add goal</button></div><div class="card"><h3>Feedback I received</h3>${f.map(x=>`<div class="li"><span>${esc(x.message)}</span><span class="k">${esc(x.from_name)}</span></div>`).join("")||'<p class="k">None yet</p>'}</div></div>`},
+async onb(){const t=await api("/onboarding");return `<h2>Onboarding</h2><p class="sub">Checklist for your first 90 days.</p><div class="card">${t.map(x=>`<label style="display:block;padding:6px 0"><input type="checkbox" data-o="${x.id}" ${x.done?"checked":""}>${esc(x.step)}</label>`).join("")||'<p class="k">No checklist assigned</p>'}<div class="bar" style="margin-top:10px"><i style="width:${t.length?Math.round(t.filter(x=>x.done).length/t.length*100):0}%"></i></div></div>`},
+async en(){const s=U.role==="HR"?await api("/pulse/summary"):null;return `<h2>Engagement and wellbeing</h2><p class="sub">Weekly pulse. Your answer is anonymous: only your department is stored, never your name.</p><div class="row"><div class="card"><h3>How was your week?</h3><div class="emo">${["😞","😐","🙂","😄"].map((e,i)=>`<button data-a="pulse" data-m="${i+1}">${e}</button>`).join("")}</div></div>${s?`<div class="card"><h3>Engagement by department</h3>${s.map(x=>`<div class="li" style="display:block"><div style="display:flex;justify-content:space-between"><span>${esc(x.department)}</span><b>${x.score}</b></div><div class="bar"><i style="width:${x.score}%"></i></div></div>`).join("")}</div>`:""}</div>`},
+async comp(){const[c,p]=await Promise.all([api("/compliance"),api("/policies")]);return `<h2>Compliance</h2><p class="sub">Obligations and policy acknowledgements.</p><div class="row"><div class="card"><h3>Obligations</h3>${c.map(x=>`<div class="li" style="display:block"><div style="display:flex;justify-content:space-between"><span>${esc(x.title)}</span><span class="k">Due ${esc(x.due_date)}</span></div><div class="bar"><i style="width:${x.percent_done}%"></i></div></div>`).join("")}</div><div class="card"><h3>Policies</h3>${p.map(x=>`<div class="li">${esc(x.title)}<button class="btn ${x.acknowledged?"on":""}" data-a="ack" data-i="${x.id}">${x.acknowledged?"Acknowledged ✓":"Acknowledge"}</button></div>`).join("")}</div></div>`},
+async help(){const t=await api("/tickets");return `<h2>Helpdesk</h2><p class="sub">Ask the assistant or raise a ticket.</p><div class="row"><div class="card"><h3>HR assistant</h3><div id="chat" style="max-height:200px;overflow:auto">${chatHtml()}</div><input id="cq" placeholder="Ask about leave, payslip, WFH, POSH"><button class="btn" data-a="ask">Ask</button></div><div class="card"><h3>${U.role==="HR"?"All tickets":"My tickets"}</h3>${t.map(x=>`<div class="li"><div>${esc(x.subject)}<div class="k">${esc(x.name||"")}</div></div>${U.role==="HR"&&x.status!=="Resolved"?`<button class="btn" data-a="tres" data-i="${x.id}">Resolve</button>`:`<span class="tag ${x.status==="Resolved"?"lo":"md"}">${esc(x.status)}</span>`}</div>`).join("")||'<p class="k">No tickets</p>'}<input id="tk" placeholder="Describe your issue" style="margin-top:8px"><button class="btn" data-a="tick">Raise ticket</button></div></div>`}};
+const chatHtml=()=>CH.map(c=>`<div class="li" style="justify-content:${c[0]==="me"?"flex-end":"flex-start"}"><span class="tag ${c[0]==="me"?"md":"lo"}" style="font-weight:400;font-size:13px;white-space:normal">${esc(c[1])}</span></div>`).join("");
+const A={
+async apply(){await api("/leave","POST",{type:$("#lt").value,days:+$("#ld").value,reason:$("#lr").value});toast("Request sent to your manager")},
+async dec(d){await api("/leave/"+d.i,"PATCH",{status:d.v});toast(d.v)},
+async wfh(d){await api("/workplan","PUT",{date:d.d,location:d.l})},
+async addgoal(){if(!$("#gt").value.trim())return false;await api("/goals","POST",{title:$("#gt").value.trim()})},
+async pulse(d){await api("/pulse","POST",{mood:+d.m});toast("Thanks! Your answer is anonymous.");return false},
+async ack(d){await api("/policies/"+d.i+"/ack","POST")},
+async tick(){if(!$("#tk").value.trim())return false;await api("/tickets","POST",{subject:$("#tk").value.trim()});toast("Ticket raised")},
+async tres(d){await api("/tickets/"+d.i,"PATCH",{status:"Resolved"})},
+async adv(d){if(d.n)await api("/candidates/"+d.i,"PATCH",{stage:d.n})},
+async ask(){const q=$("#cq").value.trim();if(!q)return false;const r=await api("/chat","POST",{message:q});CH.push(["me",q],["bot",r.reply]);$("#chat").innerHTML=chatHtml();$("#cq").value="";return false}};
+$("#main").onclick=async e=>{const b=e.target.closest("[data-a]");if(!b)return;try{if(await A[b.dataset.a](b.dataset)!==false)go(cur)}catch(x){toast(x.message)}};
+$("#main").onchange=async e=>{const t=e.target;try{
+ if(t.dataset.g){await api("/goals/"+t.dataset.g,"PATCH",{progress:+t.value});$("#g"+t.dataset.g).textContent=t.value+"%"}
+ else if(t.dataset.o){await api("/onboarding/"+t.dataset.o,"PATCH",{done:t.checked});go("onb")}
+ else if(t.closest("#sim")){$("#sr").textContent=$("#sraise").value;const b={user_id:+$("#su").value,raise:+$("#sraise").value};["promotion","manager_change","flexible","learning"].forEach(k=>b[k]=$("#sc_"+k).checked);
+  const r=await api("/analytics/simulate","POST",b),g=rk(r.after);$("#so").innerHTML=`Risk ${r.before}% → ${r.after}% <span class="tag ${g[0]}">${g[1]}</span>`;$("#sn").textContent=`Exit cost avoided ₹${r.cost_avoided_lakh} L vs extra pay ₹${r.extra_pay_lakh} L. Net ${r.net_lakh>=0?"gain":"loss"}: ₹${Math.abs(r.net_lakh)} L.`}
+}catch(x){toast(x.message)}};
+$("#main").oninput=e=>{if(e.target.dataset.g)$("#g"+e.target.dataset.g).textContent=e.target.value+"%";if(e.target.id==="sraise")$("#sr").textContent=e.target.value};
+(async()=>{T=ld();if(T){try{start(await api("/me"))}catch(e){logout()}}else show()})();
+</script></body></html>
